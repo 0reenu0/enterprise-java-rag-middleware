@@ -8,7 +8,7 @@ from llm_service import LLMService
 from chunking import DocumentChunker
 from vector_store import VectorStoreService
 
-app = FastAPI(title="Enterprise GenAI Engine - Day 2")
+app = FastAPI(title="Enterprise GenAI Engine - Day 3")
 llm_service = LLMService()
 chunker=DocumentChunker(chunk_size=200,chunk_overlap=40)
 vector_store=VectorStoreService()
@@ -44,7 +44,8 @@ async def ingest_document(request: IngestDocumentRequest):
         return IngestResponse(
             document_id=request.document_id,
             total_chunks=inserted_count,
-            message=f"Successfully indexed {inserted_count} chunks into ChromaDB!"
+            provider_used=vector_store.provider,
+            message=f"Successfully indexed {inserted_count} chunks into ChromaDB using '{vector_store.provider}' provider!"
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -55,10 +56,24 @@ async def search_vector_store(request:SearchRequest):
         raise HTTPException(status_code=400, detail="Search query cannot be mepty")
 
     try:
-        results= vector_store.search(query=request.query, top_k=request.top_k)
-        return SearchResponse(query=request.query, results=results)
+        results= vector_store.search(query=request.query, 
+        top_k=request.top_k,
+        filter_metadata==request.filter_metadata
+        )
+        return SearchResponse(query=request.query, 
+        provider_used=vector_store.provider,
+        results=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+        
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+@app.get("/api/v1/status", response_model=SystemStatusResponse)
+async def get_system_status():
+    return SystemStatusResponse(
+        embedding_provider=vector_store.provider,
+        collection_name=vector_store.collection_name,
+        total_indexed_chunks=vector_store.count()
+    )

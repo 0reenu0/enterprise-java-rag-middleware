@@ -11,7 +11,7 @@ class VectorStoreService:
     def __init__(self, collection_name: str="enterprise_rag_docs"):
         api_key = os.getenv("OPEAI_API_KEY")
 
-
+        self.provider=settings.EMBEDDED_PROVIDER
         #persistant storage locally inside chromadb folder
         self.chroma_client = chromadb.PersistentClient(path="./chromadb")
 
@@ -66,7 +66,7 @@ class VectorStoreService:
                     metadata=results["metadatas"][0][i]
                 ))
         return search_items
-        
+
     def count(self) -> int:
         return self.collection.count()
 
