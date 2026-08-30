@@ -2,10 +2,9 @@ import os
 import chromadb
 from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from schemas import SearchResultItem
-
-load_dotenv()
+from config import settings
 
 class VectorStoreService:
     def __init__(self, collection_name: str="enterprise_rag_docs"):
