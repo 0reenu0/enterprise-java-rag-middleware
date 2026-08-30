@@ -28,18 +28,28 @@ class IngestResponse(BaseModel):
     document_id:str
     total_chunks:int   
     message: str 
+    provider_used: str
 
 class SearchRequest(BaseModel):
     query: str=Field(description="Natural language Search query string")
     top_k: int=Field(default=3, description="Number of top results to return")
-
+    filter_metadata: Optional[Dict[str, Any]]= Field(
+        default=None,
+        description="Optional metadata filters e.g. {'department':'IT'}"
+    )
 class SearchResultItem(BaseModel):
     chunk_id:str
     document_id:str
     text:str
     score:float = Field(description=" Cosine distance or similarity score - Relevance score from 0.0 to 1.0")
+    metadata=Dict[str, Any]
 
 class SearchResponse(BaseModel):
     query:str
     results:List[SearchResultItem]
-    
+    provider_used: str
+
+class SystemStatusResponse(BaseModel):
+    embedding_provider: str
+    collection_name: str
+    total_indexed_chunks: int
