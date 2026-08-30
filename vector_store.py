@@ -11,19 +11,17 @@ class VectorStoreService:
     def __init__(self, collection_name: str="enterprise_rag_docs"):
         api_key = os.getenv("OPEAI_API_KEY")
 
+
         #persistant storage locally inside chromadb folder
         self.chroma_client = chromadb.PersistentClient(path="./chromadb")
 
-        #openai embedding function
-        self.openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-            api_key=api_key,
-            model_name="text-embedding-3-small"
-        )
+        #factory method to reolve embedding provider and isolated collection
+        self.embedding_fn, self.collection_name=self._resolve_embedding_provider()
 
         #initialize or get chroma collection
         self.collection=self.chroma_client.get_or_create_collection(
-            name=collection_name,
-            embedding_function=self.openai_ef,
+            name=self.collection_name,
+            embedding_function=self.embedding_fn,
             metadata={"hnsw:space":"cosine"},
         )
 
@@ -31,6 +29,8 @@ class VectorStoreService:
         """
         Adds text chunks and metadata to ChromaDB collection
         """
+        if not chunks:
+            return 0
 
         ids=[c["chunk_id"] for c in chunks]
         documents=[c["text"] for c in chunks]
@@ -41,14 +41,18 @@ class VectorStoreService:
             documents=documents,
             metadatas=metadatas
         )
+        return len(chunks)
 
-    def search(Self, query:str, top_k: int =3)-> List[SearchResultItem]:
+    def search(self, query:str, top_k: int =3, filter_metadata: Optional[Dict[str,Any]]= None)-> List[SearchResultItem]:
         """
         Queries the vector index using cosine similarity
         """
+        where_clause= filter_metadata if filter_metadata else None
+
         results=self.collection.query(
             query_texts=[query],
             n_results=top_k,
+            where=where_clause,
             include=["documents","metadata","distances"]
         )
         search_items=[]
@@ -62,3 +66,32 @@ class VectorStoreService:
                     metadata=results["metadatas"][0][i]
                 ))
         return search_items
+        
+    def count(self) -> int:
+        return self.collection.count()
+
+    def _resolve_embedding_provider(self):
+        if self.provider=="openai"
+            if not settings.OPEAI_API_KEY:
+                raise ValueError("EMBEDDING_PROVIDER is 'openai' but OPEAI_API_KEY is missing.")
+        
+        #openai embedding function
+            ef=embedding_functions.OpenAIEmbeddingFunction(
+                api_key=OPEAI_API_KEY,
+                model_name="text-embedding-3-small"
+            )
+            collection_name="enterprise_rag_openai"
+
+        elif self.provider=="local":
+            ef=embedding_functions.SentenceTransformerEmbeddingFunction(
+                model_name="all-MiniLM-L6-v2"
+            )
+            collection_name="enterprise_rag_local"
+
+        else:
+            raise ValueError(f"Unsupported EMBEDDINF_PROVIDER: '{self.provider}' Use 'openai' or 'local'")
+        
+        return ef, collection_name
+
+    
+    
